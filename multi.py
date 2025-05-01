@@ -15,14 +15,28 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 PAGE_URL     = "https://leaderinmespeechcontest.us.launchpad6.com/contest12/entry/7228"
 VOTE_URL     = "https://leaderinmespeechcontest.us.launchpad6.com/contest12/vote"
 TOTAL_RUNS   = 50000
-CONCURRENCY  = 10      # in-flight at once
+CONCURRENCY  = 5      # in-flight at once
 PAUSE        = 1       # per-task sleep after each vote, in seconds
 
-# If you have HTTP proxies, put them here:
-PROXIES = [
-    # "http://user:pass@1.2.3.4:8080",
-    # "http://user:pass@5.6.7.8:3128",
+# raw proxies in host:port:user:pass format
+_RAW_PROXIES = [
+    "38.154.227.167:5868:wnnkfnzz:6dpzirmjctl7",
+    "45.127.248.127:5128:wnnkfnzz:6dpzirmjctl7",
+    "198.23.239.134:6540:wnnkfnzz:6dpzirmjctl7",
+    "38.153.152.244:9594:wnnkfnzz:6dpzirmjctl7",
+    "86.38.234.176:6630:wnnkfnzz:6dpzirmjctl7",
+    "173.211.0.148:6641:wnnkfnzz:6dpzirmjctl7",
+    "216.10.27.159:6837:wnnkfnzz:6dpzirmjctl7",
+    "154.36.110.199:6853:wnnkfnzz:6dpzirmjctl7",
+    "45.151.162.198:6600:wnnkfnzz:6dpzirmjctl7",
+    "188.74.210.21:6100:wnnkfnzz:6dpzirmjctl7",
 ]
+
+# build proper proxy URLs with auth embedded
+PROXIES = []
+for line in _RAW_PROXIES:
+    host, port, user, pwd = line.split(":", 3)
+    PROXIES.append(f"http://{user}:{pwd}@{host}:{port}")
 
 # A small pool of User-Agents to rotate
 USER_AGENTS = [
@@ -47,14 +61,14 @@ async def vote(session: aiohttp.ClientSession, idx: int):
     # wipe local cookies
     session.cookie_jar.clear()
 
-    # build a fresh payload with a random visitor_id (and optional random email)
+    # build a fresh payload
     payload = {
         "entryId": "7228",
         "media_id": "01b47ca353ae874a",
         "data": {
-            "vote_email":   f"guest+{uuid.uuid4().hex[:8]}",  # randomize email
+            "vote_email":   f"guest+{uuid.uuid4().hex[:8]}",
             "schedule_id":  "9",
-            "visitor_id":   uuid.uuid4().hex,                # random visitor_id
+            "visitor_id":   uuid.uuid4().hex,
         }
     }
 
@@ -66,12 +80,17 @@ async def vote(session: aiohttp.ClientSession, idx: int):
     proxy = random.choice(PROXIES) if PROXIES else None
 
     try:
-        async with session.post(VOTE_URL, json=payload, headers=headers,
-                                timeout=5, proxy=proxy) as resp:
+        async with session.post(
+            VOTE_URL,
+            json=payload,
+            headers=headers,
+            timeout=5,
+            proxy=proxy
+        ) as resp:
             ok = resp.status == 200
-            print(f"[{idx:05d}/{TOTAL_RUNS:05d}] → {resp.status} {'✔' if ok else '✖'}")
+            print(f"[{idx:05d}/{TOTAL_RUNS:05d}] → {resp.status} {'✔' if ok else '✖'} via {proxy}")
     except Exception as e:
-        print(f"[{idx:05d}/{TOTAL_RUNS:05d}] Exception: {e}")
+        print(f"[{idx:05d}/{TOTAL_RUNS:05d}] Exception: {e} via {proxy}")
 
     if PAUSE:
         await asyncio.sleep(PAUSE)
