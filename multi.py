@@ -42,9 +42,9 @@ async def vote(session: aiohttp.ClientSession, idx: int):
         "entryId": "7228",
         "media_id": "01b47ca353ae874a",
         "data": {
-            "vote_email":  f"guest+{uuid.uuid4().hex[:8]}",
+            "vote_email":  "guest",
             "schedule_id": "9",
-            "visitor_id":  uuid.uuid4().hex,
+            "visitor_id":  "",
         }
     }
 
